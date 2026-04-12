@@ -14,12 +14,20 @@ printf 'repo: %s\n' "$DOTFILES_DIR"
 printf 'target: %s\n' "$TARGET_DIR"
 printf 'packages: %s\n' "$packages"
 
-if has_package git "$@" && [ ! -f "$HOME/.gitconfig.local" ]; then
-    printf 'note: missing %s\n' "$HOME/.gitconfig.local"
+target_gitconfig_local=$TARGET_DIR/.gitconfig.local
+target_zprofile_local=$TARGET_DIR/.zprofile.local
+target_zshrc_local=$TARGET_DIR/.zshrc.local
+
+if has_package git "$@" && [ ! -f "$target_gitconfig_local" ]; then
+    printf 'note: missing %s\n' "$target_gitconfig_local"
 fi
 
-if has_package zsh "$@" && [ ! -f "$HOME/.zshrc.local" ]; then
-    printf 'note: optional %s not found\n' "$HOME/.zshrc.local"
+if has_package zsh "$@" && [ ! -f "$target_zprofile_local" ]; then
+    printf 'note: optional %s not found\n' "$target_zprofile_local"
+fi
+
+if has_package zsh "$@" && [ ! -f "$target_zshrc_local" ]; then
+    printf 'note: optional %s not found\n' "$target_zshrc_local"
 fi
 
 cd "$DOTFILES_DIR"

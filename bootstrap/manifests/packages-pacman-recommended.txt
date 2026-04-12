@@ -1,0 +1,10 @@
+git-lfs
+tmux
+neovim
+github-cli
+fzf
+zoxide
+eza
+btop
+fastfetch
+yazi

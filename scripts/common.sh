@@ -3,7 +3,7 @@ set -eu
 
 DOTFILES_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 TARGET_DIR=${TARGET_DIR:-$HOME}
-DOTFILES_PACKAGES=${DOTFILES_PACKAGES:-"zsh tmux git starship local-bin ccache"}
+DOTFILES_PACKAGES=${DOTFILES_PACKAGES:-"shell zsh tmux git starship nvim gh btop fastfetch"}
 
 require_stow() {
     if ! command -v stow >/dev/null 2>&1; then
