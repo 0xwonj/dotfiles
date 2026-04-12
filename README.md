@@ -41,7 +41,7 @@ Shared login-shell helpers live under `shell/.config/shell/`.
 
 - cleaning stale PATH entries
 - adding common tool locations only when they exist
-- loading optional tool env scripts such as cargo, starkli, and deno
+- loading optional shared env scripts such as cargo
 - deduplicating PATH after all shared setup
 
 Then each shell entrypoint stays focused on its own role:

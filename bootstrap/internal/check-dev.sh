@@ -19,6 +19,7 @@ print_group() {
 }
 
 prepend_user_bins
+prepend_brew_path_if_present
 
 python_commands="uv"
 rust_commands="rustup cargo rustc"

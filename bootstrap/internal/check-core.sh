@@ -4,6 +4,9 @@ set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "$script_dir/lib/common.sh"
 
+prepend_user_bins
+prepend_brew_path_if_present
+
 required_commands="git stow zsh curl"
 recommended_commands="git-lfs tmux nvim starship gh fzf zoxide eza btop fastfetch yazi"
 

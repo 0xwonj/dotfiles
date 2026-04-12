@@ -143,7 +143,7 @@ ignore_base = false
 ssh_only = false
 style = "fg:yellow bg:crust"
 format = '[ $hostname ]($style)[|](fg:overlay0 bg:crust)'
-trim_at = ""
+trim_at = "."
 
 [time]
 disabled = false

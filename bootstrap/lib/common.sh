@@ -20,6 +20,31 @@ have_cmd() {
     command -v "$1" >/dev/null 2>&1
 }
 
+resolve_brew() {
+    if [ "${HOMEBREW_BREW_FILE:-}" ] && [ -x "${HOMEBREW_BREW_FILE:-}" ]; then
+        printf '%s\n' "$HOMEBREW_BREW_FILE"
+        return 0
+    fi
+
+    for brew_bin in \
+        /opt/homebrew/bin/brew \
+        /usr/local/bin/brew \
+        /home/linuxbrew/.linuxbrew/bin/brew
+    do
+        if [ -x "$brew_bin" ]; then
+            printf '%s\n' "$brew_bin"
+            return 0
+        fi
+    done
+
+    if have_cmd brew; then
+        command -v brew
+        return 0
+    fi
+
+    return 1
+}
+
 prepend_path() {
     dir=$1
 
@@ -35,6 +60,13 @@ prepend_path() {
 prepend_user_bins() {
     prepend_path "$HOME/.local/bin"
     prepend_path "$HOME/.cargo/bin"
+    export PATH
+}
+
+prepend_brew_path_if_present() {
+    brew_bin=$(resolve_brew 2>/dev/null || true)
+    [ -n "$brew_bin" ] || return 0
+    prepend_path "${brew_bin%/brew}"
     export PATH
 }
 
@@ -75,7 +107,7 @@ detect_package_manager() {
 
     case $(uname -s) in
         Darwin)
-            if have_cmd brew; then
+            if resolve_brew >/dev/null 2>&1; then
                 printf 'brew\n'
                 return
             fi
@@ -94,7 +126,7 @@ detect_package_manager() {
                 printf 'pacman\n'
                 return
             fi
-            if have_cmd brew; then
+            if resolve_brew >/dev/null 2>&1; then
                 printf 'brew\n'
                 return
             fi
@@ -132,7 +164,8 @@ install_required_packages() {
 
     case $pm in
         brew)
-            brew bundle --file="$file"
+            brew_bin=$(resolve_brew) || die "Homebrew is required but brew could not be found"
+            "$brew_bin" bundle --file="$file"
             return
             ;;
         apt | dnf | pacman)
@@ -170,7 +203,8 @@ install_optional_packages() {
 
     case $pm in
         brew)
-            brew bundle --file="$file" || warn "some recommended Homebrew packages could not be installed"
+            brew_bin=$(resolve_brew) || die "Homebrew is required but brew could not be found"
+            "$brew_bin" bundle --file="$file" || warn "some recommended Homebrew packages could not be installed"
             return
             ;;
         apt | dnf | pacman)
