@@ -1,0 +1,9 @@
+# Extra completions first so compinit can pick them up.
+zsh-users/zsh-completions
+
+# Lightweight interactive quality-of-life plugins.
+zsh-users/zsh-autosuggestions
+zsh-users/zsh-history-substring-search
+
+# Keep highlighting last.
+zdharma-continuum/fast-syntax-highlighting

@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$script_dir/common.sh"
+
+require_stow
+packages=$(resolve_packages "$@")
+# intentional word splitting for package membership checks
+# shellcheck disable=SC2086
+set -- $packages
+
+printf 'repo: %s\n' "$DOTFILES_DIR"
+printf 'target: %s\n' "$TARGET_DIR"
+printf 'packages: %s\n' "$packages"
+
+if has_package git "$@" && [ ! -f "$HOME/.gitconfig.local" ]; then
+    printf 'note: missing %s\n' "$HOME/.gitconfig.local"
+fi
+
+if has_package zsh "$@" && [ ! -f "$HOME/.zshrc.local" ]; then
+    printf 'note: optional %s not found\n' "$HOME/.zshrc.local"
+fi
+
+cd "$DOTFILES_DIR"
+
+status=0
+# shellcheck disable=SC2086
+stow -nv --target="$TARGET_DIR" $packages || status=$?
+exit "$status"

@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "$script_dir/common.sh"
+
+require_stow
+packages=$(resolve_packages "$@")
+
+cd "$DOTFILES_DIR"
+
+# shellcheck disable=SC2086
+stow --target="$TARGET_DIR" $packages

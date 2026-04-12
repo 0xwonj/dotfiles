@@ -1,0 +1,190 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+format = """
+$os\
+$username\
+[](bg:mauve fg:blue)\
+$directory\
+([](bg:yellow fg:mauve)$git_branch$git_status)\
+[](fg:prev_bg bg:crust)\
+$fill\
+$c$rust$golang$nodejs$php$java$kotlin$haskell$python$conda$hostname$time$cmd_duration\
+$line_break\
+$character"""
+
+right_format = ""
+
+palette = 'catppuccin_mocha_tmux'
+
+[os]
+disabled = false
+style = "bg:blue fg:crust"
+format = '[ $symbol]($style)'
+
+[os.symbols]
+Windows = ""
+Ubuntu = "󰕈"
+SUSE = ""
+Raspbian = "󰐿"
+Mint = "󰣭"
+Macos = "󰀵"
+Manjaro = ""
+Linux = "󰌽"
+Gentoo = "󰣨"
+Fedora = "󰣛"
+Alpine = ""
+Amazon = ""
+Android = ""
+AOSC = ""
+Arch = "󰣇"
+Artix = "󰣇"
+CentOS = ""
+Debian = "󰣚"
+Redhat = "󱄛"
+RedHatEnterprise = "󱄛"
+
+[username]
+show_always = true
+style_user = "bg:blue fg:crust"
+style_root = "bg:blue fg:crust"
+format = '[ $user]($style)'
+
+[directory]
+style = "bg:mauve fg:crust"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = "󰝚 "
+"Pictures" = " "
+"Developer" = "󰲋 "
+
+[git_branch]
+symbol = ""
+style = "bg:yellow"
+format = '[[ $symbol $branch ](fg:crust bg:yellow)]($style)'
+
+[git_status]
+style = "bg:yellow"
+format = '[$all_status$ahead_behind]($style)'
+conflicted = '[=${count} ](fg:red bg:yellow)'
+ahead = '[⇡${count} ](fg:blue bg:yellow)'
+behind = '[⇣${count} ](fg:blue bg:yellow)'
+diverged = '[⇕⇡${ahead_count}⇣${behind_count} ](fg:peach bg:yellow)'
+untracked = '[?${count} ](fg:crust bg:yellow)'
+stashed = '[*${count} ](fg:blue bg:yellow)'
+modified = '[!${count} ](fg:crust bg:yellow)'
+staged = '[+${count} ](fg:green bg:yellow)'
+renamed = '[»${count} ](fg:blue bg:yellow)'
+deleted = '[✘${count} ](fg:red bg:yellow)'
+typechanged = '[~${count} ](fg:peach bg:yellow)'
+
+[nodejs]
+symbol = ""
+style = "fg:green bg:crust"
+format = '[ $symbol( $version) ]($style)[|](fg:overlay0 bg:crust)'
+
+[c]
+symbol = " "
+style = "fg:green bg:crust"
+format = '[ $symbol( $version) ]($style)[|](fg:overlay0 bg:crust)'
+
+[rust]
+symbol = ""
+style = "fg:green bg:crust"
+format = '[ $symbol( $version) ]($style)[|](fg:overlay0 bg:crust)'
+
+[golang]
+symbol = ""
+style = "fg:green bg:crust"
+format = '[ $symbol( $version) ]($style)[|](fg:overlay0 bg:crust)'
+
+[php]
+symbol = ""
+style = "fg:green bg:crust"
+format = '[ $symbol( $version) ]($style)[|](fg:overlay0 bg:crust)'
+
+[java]
+symbol = " "
+style = "fg:green bg:crust"
+format = '[ $symbol( $version) ]($style)[|](fg:overlay0 bg:crust)'
+
+[kotlin]
+symbol = ""
+style = "fg:green bg:crust"
+format = '[ $symbol( $version) ]($style)[|](fg:overlay0 bg:crust)'
+
+[haskell]
+symbol = ""
+style = "fg:green bg:crust"
+format = '[ $symbol( $version) ]($style)[|](fg:overlay0 bg:crust)'
+
+[python]
+symbol = ""
+style = "fg:green bg:crust"
+python_binary = ["python", "python3.14", "python3"]
+format = '[ $symbol( $version)(\(#$virtualenv\)) ]($style)[|](fg:overlay0 bg:crust)'
+
+[docker_context]
+symbol = ""
+style = "fg:blue bg:crust"
+format = '[ $symbol( $context) ]($style)[|](fg:overlay0 bg:crust)'
+
+[conda]
+symbol = "  "
+style = "fg:green bg:crust"
+format = '[$symbol$environment ]($style)[|](fg:overlay0 bg:crust)'
+ignore_base = false
+
+[hostname]
+ssh_only = false
+style = "fg:yellow bg:crust"
+format = '[ $hostname ]($style)[|](fg:overlay0 bg:crust)'
+trim_at = ""
+
+[time]
+disabled = false
+time_format = "%R"
+style = "fg:blue bg:crust"
+format = '[  $time ]($style)'
+
+[fill]
+symbol = " "
+style = "bg:crust"
+
+[line_break]
+disabled = false
+
+[character]
+disabled = false
+success_symbol = '[❯](bold fg:green)'
+error_symbol = '[❯](bold fg:red)'
+vimcmd_symbol = '[❮](bold fg:green)'
+vimcmd_replace_one_symbol = '[❮](bold fg:mauve)'
+vimcmd_replace_symbol = '[❮](bold fg:mauve)'
+vimcmd_visual_symbol = '[❮](bold fg:yellow)'
+
+[cmd_duration]
+show_milliseconds = true
+format = '[|](fg:overlay0 bg:crust)[  $duration ]($style)'
+style = "fg:overlay0 bg:crust"
+disabled = false
+show_notifications = true
+min_time_to_notify = 45000
+
+[palettes.catppuccin_mocha_tmux]
+crust = "#1e1e2e"
+text = "#cdd6f4"
+subtext1 = "#bac2de"
+surface0 = "#313244"
+surface1 = "#45475a"
+red = "#f38ba8"
+peach = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+blue = "#89b4fa"
+mauve = "#cba6f7"
+overlay0 = "#6c7086"

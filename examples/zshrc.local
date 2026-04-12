@@ -1,0 +1,5 @@
+# Machine-specific shell customizations belong here.
+
+# Example:
+# export PATH="$PATH:$HOME/.risc0/bin"
+# eval "$(direnv hook zsh)"
