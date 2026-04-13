@@ -3,7 +3,7 @@ set -eu
 
 DOTFILES_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 TARGET_DIR=${TARGET_DIR:-$HOME}
-DOTFILES_PACKAGES=${DOTFILES_PACKAGES:-"shell zsh tmux git starship nvim gh btop"}
+DOTFILES_PACKAGES=${DOTFILES_PACKAGES:-"shell zsh git nvim"}
 COLOR_RESET=
 COLOR_BOLD=
 COLOR_DIM=

@@ -9,105 +9,65 @@ This repo stores the shared, reproducible part of the environment. Identity, sec
 1. Clone this repo to `~/dotfiles`.
 2. Copy `templates/gitconfig.local` to `~/.gitconfig.local` and fill in Git identity.
 3. Optionally copy `templates/zprofile.local` and `templates/zshrc.local`.
-4. Run `./bootstrap/install.sh`.
-5. On development machines, optionally run `./bootstrap/install-dev.sh`.
-6. Run `./scripts/check`.
-7. Run `./scripts/stow`.
-8. Open a new login shell and verify the environment.
-
-## Daily Use
-
-Preview changes:
+4. On macOS, run `xcode-select --install` once before bootstrapping. On Arch/pacman, run `sudo pacman -Syu`.
+5. Run:
 
 ```sh
-./scripts/check
+./bootstrap/workstation.sh
 ```
 
-Apply symlinks:
+This installs the baseline workstation: core tools, baseline developer tooling, the default stowed dotfiles, and the Neovim environment.
+
+Optional groups:
+
+- `--with-github`: `gh` CLI
+- `--with-terminal-apps`: `tmux`, `btop`, plus user-local installs of `starship` and `yazi`, and the stowed `tmux/`, `btop/`, and `starship/` packages
+- `--with-git-lfs`: `git-lfs` and local LFS filters in `~/.gitconfig.local`
+- `--with-ai-tools`: `codex` and `claude`
+- `--with-all-optional`: all of the above
+
+Example:
 
 ```sh
-./scripts/stow
+./bootstrap/workstation.sh --with-github --with-terminal-apps
 ```
 
-Rebuild symlinks:
+Routine refresh on an already-provisioned machine:
 
 ```sh
-./scripts/restow
-```
-
-Remove managed symlinks:
-
-```sh
-./scripts/unstow
-```
-
-Operate on specific packages:
-
-```sh
-./scripts/check shell zsh git
-./scripts/stow git starship nvim
-./scripts/restow zsh tmux
-./scripts/unstow gh
-```
-
-Test against a temporary target:
-
-```sh
-TARGET_DIR=/tmp/dotfiles-test ./scripts/check
+./bootstrap/workstation.sh --update
 ```
 
 ## Layout
 
-- `shell/`, `zsh/`, `tmux/`, `git/`, `starship/`, `nvim/`, `gh/`, `btop/`: stowed config packages
-- `bootstrap/`: package installation scripts and manifests
+- `shell/`, `zsh/`, `git/`, `nvim/`: default stowed baseline packages
+- `tmux/`, `btop/`, `starship/`: opt-in stowed packages used by workstation flags
+- `fastfetch/`: manual-only config package, not applied by default
+- `bootstrap/`: installation and provisioning scripts
 - `scripts/`: thin wrappers around `stow`
 - `templates/`: starter files for local-only config
-- `fastfetch/`: saved config only, not applied by default
 
-## Local-Only Files
+## Notes
 
-These are intentionally not tracked:
+- Run bootstrap scripts as your normal user, not with `sudo`. If needed, authenticate first with `sudo -v`.
+- `./bootstrap/workstation.sh` is the reproducible bootstrap path.
+- `./bootstrap/workstation.sh --update` is the explicit maintenance path.
+- Both commands are intended to be safe to rerun.
+- Neovim is installed from the latest official stable GitHub release into versioned directories under `~/.local/opt`, with `~/.local/opt/nvim-stable` and `~/.local/bin/nvim` repointed atomically.
+- Neovim plugins are restored from `nvim/.config/nvim/lazy-lock.json` during bootstrap.
+- `fzf`, `zoxide`, and `eza` are installed by default as convenience tools; missing them does not fail bootstrap.
+- `--with-ai-tools` is opt-in because these CLIs are account-scoped local tools, and Claude Code's official install flow may still prompt shell `PATH` guidance around `~/.local/bin`.
+- Supported target environments: macOS, Ubuntu, and Arch Linux.
+- Supported package managers: Homebrew on macOS, `apt`/`dnf`/`pacman` on Linux.
 
-- `~/.gitconfig.local`
-- `~/.zprofile.local`
-- `~/.zshrc.local`
-- `~/.config/gh/hosts.yml`
-- secrets and credentials under `~/.ssh`, `~/.aws`, `~/.gnupg`, `~/.codex`, and similar directories
-- generated files such as `~/.zsh_plugins.zsh` and `~/.cache/zsh/zcompdump-*`
-- installed binaries and caches under `~/.local`, `~/.cargo`, `~/.rustup`, and `~/.cache`
+## Advanced
 
-## Shell Model
+Use these only when you want a narrower operation than `workstation.sh`.
 
-Shared shell helpers live under `shell/.config/shell/`.
-
-- `env.sh`: common exported defaults such as `EDITOR`, `PAGER`, and `GOPATH`
-- `path.sh`: PATH cleanup, shared tool PATH entries, and optional env scripts such as cargo
-- `zsh/.zshenv`: minimal environment for every zsh process
-- `zsh/.zprofile`: login-shell setup, then `~/.zprofile.local`
-- `zsh/.zshrc`: interactive behavior, plugins, aliases, prompt, then `~/.zshrc.local`
-
-## Bootstrap
-
-`bootstrap/` installs external tools. `stow` manages symlinks.
-
-- `./bootstrap/install.sh`: core toolchain, recommended packages, local `git-lfs` setup when present, antidote, then a post-check
-- `./bootstrap/install.sh --required-only`: install only the minimum needed to manage this repo
-- `./bootstrap/install-dev.sh`: development tooling such as `node`, `npm`, `uv`, `rustup`, and `codex`
-- supported package managers: Homebrew on macOS, `apt`/`dnf`/`pacman` on Linux
-- manifest files under `bootstrap/manifests/` are the source of truth for package-manager-specific packages
-- on Linux, system package installation uses `sudo` and recommended packages are best-effort
-- `git-lfs` filters are written into `~/.gitconfig.local`, not the shared repo-managed Git config
-
-## Migration Notes
-
-If a target path already exists as a regular file, `stow` will refuse to overwrite it.
-
-Typical migration flow:
-
-1. Run `./bootstrap/install.sh`.
-2. On development machines, optionally run `./bootstrap/install-dev.sh`.
-3. Run `./scripts/check` and inspect conflicts.
-4. Move conflicting files into a backup directory under `$HOME`.
-5. Copy identity or host-specific settings into the appropriate `*.local` files.
-6. Run `./scripts/stow`.
-7. Open a new login shell and verify `zsh`, `git`, and `PATH`.
+- `./bootstrap/install.sh`: core toolchain, default convenience packages, latest stable Neovim, and selected optional core groups
+- `./bootstrap/install-dev.sh`: baseline developer tooling, plus opt-in AI CLIs when requested
+- `./bootstrap/setup-neovim.sh`: restore or update the Neovim plugin and tooling state only
+- `./scripts/check`: preview stow changes
+- `./scripts/stow`: apply symlinks
+- `./scripts/restow`: rebuild symlinks
+- `./scripts/unstow`: remove managed symlinks

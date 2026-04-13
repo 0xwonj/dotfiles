@@ -1,2 +1,3 @@
+base-devel
 nodejs
 npm

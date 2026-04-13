@@ -85,6 +85,9 @@ command_for_package() {
         neovim)
             printf 'nvim\n'
             ;;
+        github-cli)
+            printf 'gh\n'
+            ;;
         nodejs)
             printf 'node\n'
             ;;
@@ -317,6 +320,10 @@ install_package_with_pm() {
         pacman)
             run_root pacman -S --needed --noconfirm "$package" >/dev/null 2>&1
             ;;
+        brew)
+            brew_bin=$(resolve_brew) || die "Homebrew is required but brew could not be found"
+            "$brew_bin" install "$package" >/dev/null 2>&1
+            ;;
         *)
             die "unsupported package manager: $pm"
             ;;
@@ -369,10 +376,7 @@ update_package_index_if_needed() {
         apt)
             run_root apt-get update
             ;;
-        pacman)
-            run_root pacman -Sy --noconfirm
-            ;;
-        dnf | brew)
+        dnf | brew | pacman)
             ;;
         *)
             die "unsupported package manager: $pm"
@@ -382,22 +386,62 @@ update_package_index_if_needed() {
     PACKAGE_INDEX_UPDATED=1
 }
 
-install_required_packages() {
+upgrade_package_with_pm() {
+    pm=$1
+    package=$2
+
+    case $pm in
+        apt)
+            if package_installed "$pm" "$package"; then
+                run_root env DEBIAN_FRONTEND=noninteractive apt-get install --only-upgrade -y "$package" >/dev/null 2>&1
+            else
+                run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y "$package" >/dev/null 2>&1
+            fi
+            ;;
+        dnf)
+            if package_installed "$pm" "$package"; then
+                run_root dnf upgrade -y "$package" >/dev/null 2>&1
+            else
+                run_root dnf install -y "$package" >/dev/null 2>&1
+            fi
+            ;;
+        pacman)
+            run_root pacman -S --needed --noconfirm "$package" >/dev/null 2>&1
+            ;;
+        brew)
+            brew_bin=$(resolve_brew) || die "Homebrew is required but brew could not be found"
+            if package_installed "$pm" "$package"; then
+                "$brew_bin" upgrade "$package" >/dev/null 2>&1
+            else
+                "$brew_bin" install "$package" >/dev/null 2>&1
+            fi
+            ;;
+        *)
+            die "unsupported package manager: $pm"
+            ;;
+    esac
+}
+
+sync_manifest_packages() {
     pm=$1
     file=$2
+    required=$3
+    upgrade=$4
     manifest_name=$(basename "$file")
     package_count=$(count_list_file "$file")
 
     detail_line manifest "$manifest_name ($package_count entries)"
 
+    if [ "$upgrade" -eq 1 ] && [ "$pm" = "pacman" ]; then
+        status_line note "pacman package upgrades are skipped; run 'sudo pacman -Syu' separately"
+    fi
+
     case $pm in
-        brew)
-            brew_bin=$(resolve_brew) || die "Homebrew is required but brew could not be found"
-            "$brew_bin" bundle --file="$file"
-            return
-            ;;
         apt | dnf | pacman)
             update_package_index_if_needed "$pm"
+            ;;
+        brew)
+            :
             ;;
         *)
             die "unsupported package manager: $pm"
@@ -413,6 +457,41 @@ install_required_packages() {
         esac
 
         current=$((current + 1))
+
+        if [ "$upgrade" -eq 1 ]; then
+            if [ "$pm" = "pacman" ] && package_installed "$pm" "$package"; then
+                status_line skip "[$current/$package_count] $package (managed by pacman; no selective upgrade)"
+                continue
+            fi
+
+            if package_installed "$pm" "$package"; then
+                status_line run "[$current/$package_count] updating $package"
+                if upgrade_package_with_pm "$pm" "$package"; then
+                    status_line ok "[$current/$package_count] $package"
+                elif [ "$required" -eq 1 ]; then
+                    die "could not update required $pm package: $package"
+                else
+                    warn "[$current/$package_count] could not update optional $pm package: $package"
+                fi
+                continue
+            fi
+
+            if package_command_available "$package"; then
+                status_line skip "[$current/$package_count] $package (provided externally)"
+                continue
+            fi
+
+            status_line run "[$current/$package_count] installing $package"
+            if install_package_with_pm "$pm" "$package"; then
+                status_line ok "[$current/$package_count] $package"
+            elif [ "$required" -eq 1 ]; then
+                die "could not install required $pm package: $package"
+            else
+                warn "[$current/$package_count] could not install optional $pm package: $package"
+            fi
+            continue
+        fi
+
         if package_available "$pm" "$package"; then
             status_line skip "[$current/$package_count] $package"
             continue
@@ -421,53 +500,24 @@ install_required_packages() {
         status_line run "[$current/$package_count] installing $package"
         if install_package_with_pm "$pm" "$package"; then
             status_line ok "[$current/$package_count] $package"
-        else
+        elif [ "$required" -eq 1 ]; then
             die "could not install required $pm package: $package"
+        else
+            warn "[$current/$package_count] could not install optional $pm package: $package"
         fi
     done < "$file"
+}
+
+install_required_packages() {
+    pm=$1
+    file=$2
+    upgrade=${3:-0}
+    sync_manifest_packages "$pm" "$file" 1 "$upgrade"
 }
 
 install_optional_packages() {
     pm=$1
     file=$2
-    manifest_name=$(basename "$file")
-    total=$(count_list_file "$file")
-
-    detail_line manifest "$manifest_name ($total entries)"
-
-    case $pm in
-        brew)
-            brew_bin=$(resolve_brew) || die "Homebrew is required but brew could not be found"
-            "$brew_bin" bundle --file="$file" || warn "some recommended Homebrew packages could not be installed"
-            return
-            ;;
-        apt | dnf | pacman)
-            update_package_index_if_needed "$pm"
-            ;;
-        *)
-            die "unsupported package manager: $pm"
-            ;;
-    esac
-
-    current=0
-    while IFS= read -r package || [ -n "$package" ]; do
-        case $package in
-            "" | \#*)
-                continue
-                ;;
-        esac
-
-        current=$((current + 1))
-        if package_available "$pm" "$package"; then
-            status_line skip "[$current/$total] $package"
-            continue
-        fi
-
-        status_line run "[$current/$total] installing $package"
-        if install_package_with_pm "$pm" "$package"; then
-            status_line ok "[$current/$total] $package"
-        else
-            warn "[$current/$total] could not install recommended $pm package: $package"
-        fi
-    done < "$file"
+    upgrade=${3:-0}
+    sync_manifest_packages "$pm" "$file" 0 "$upgrade"
 }

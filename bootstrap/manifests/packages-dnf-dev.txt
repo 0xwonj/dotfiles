@@ -1,2 +1,5 @@
+gcc
+gcc-c++
+make
 nodejs
 npm

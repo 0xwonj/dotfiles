@@ -55,6 +55,10 @@ if (( $+commands[starship] )) && [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]]; then
   eval "$(starship init zsh)"
 fi
 
+if (( $+commands[nvim] )); then
+  alias vim='nvim'
+fi
+
 if (( $+commands[eza] )); then
   alias l='eza --group-directories-first --icons=auto'
   alias ll='eza -lh --group-directories-first --icons=auto'

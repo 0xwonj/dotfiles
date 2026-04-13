@@ -21,15 +21,15 @@ print_group() {
 prepend_user_bins
 prepend_brew_path_if_present
 
+build_commands="cc make"
 python_commands="uv"
 rust_commands="rustup cargo rustc"
 javascript_commands="node npm"
-agent_commands="codex"
 missing=0
 missing_count=0
 total_count=0
 
-for cmd in $python_commands $rust_commands $javascript_commands $agent_commands; do
+for cmd in $build_commands $python_commands $rust_commands $javascript_commands; do
     total_count=$((total_count + 1))
     if ! have_cmd "$cmd"; then
         missing=1
@@ -37,6 +37,9 @@ for cmd in $python_commands $rust_commands $javascript_commands $agent_commands;
     fi
 done
 
+# shellcheck disable=SC2086
+print_group "Build tooling" $build_commands
+printf '\n'
 # intentional word splitting for command groups
 # shellcheck disable=SC2086
 print_group "Python tooling" $python_commands
@@ -46,9 +49,6 @@ print_group "Rust tooling" $rust_commands
 printf '\n'
 # shellcheck disable=SC2086
 print_group "JavaScript tooling" $javascript_commands
-printf '\n'
-# shellcheck disable=SC2086
-print_group "Agent CLIs" $agent_commands
 
 printf '\n'
 detail_line tooling "$(printf '%s/%s ok' "$((total_count - missing_count))" "$total_count")"
