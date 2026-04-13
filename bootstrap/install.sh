@@ -11,8 +11,28 @@ install_recommended=1
 install_antidote=1
 run_check=1
 
+show_usage() {
+    cat <<'EOF'
+Usage: ./bootstrap/install.sh [option ...]
+
+Install the core dotfiles toolchain and recommended packages.
+
+Options:
+  --required-only                 Install only the minimum required toolchain.
+  --skip-antidote                 Skip antidote installation or update.
+  --no-check                      Skip the final core tooling check.
+  --package-manager=brew|apt|dnf|pacman
+                                  Override package-manager detection.
+  -h, --help                      Show this help text.
+EOF
+}
+
 while [ "$#" -gt 0 ]; do
     case $1 in
+        -h | --help)
+            show_usage
+            exit 0
+            ;;
         --required-only)
             install_recommended=0
             install_antidote=0
@@ -35,19 +55,33 @@ while [ "$#" -gt 0 ]; do
 done
 
 pm=$(detect_package_manager)
-log "bootstrap package manager: $pm"
+section "bootstrap ($pm)"
+detail_line mode "core"
+
+case $pm in
+    apt | dnf | pacman)
+        ensure_root_access
+        start_sudo_keepalive
+        trap 'stop_sudo_keepalive' EXIT HUP INT TERM
+        ;;
+esac
 
 case $pm in
     brew)
+        section "required packages"
         install_required_packages "$pm" "$manifests_dir/Brewfile.required"
         if [ "$install_recommended" -eq 1 ]; then
+            section "recommended packages"
             install_optional_packages "$pm" "$manifests_dir/Brewfile.recommended"
         fi
+        section "brew shellenv"
         "$internal_dir/ensure-brew-shellenv.sh"
         ;;
     apt | dnf | pacman)
+        section "required packages"
         install_required_packages "$pm" "$manifests_dir/packages-$pm-required.txt"
         if [ "$install_recommended" -eq 1 ]; then
+            section "recommended packages"
             install_optional_packages "$pm" "$manifests_dir/packages-$pm-recommended.txt"
         fi
         ;;
@@ -57,13 +91,16 @@ case $pm in
 esac
 
 if have_cmd git-lfs; then
-    git lfs install >/dev/null 2>&1 || warn "git-lfs is installed but could not be initialized with 'git lfs install'"
+    section "git-lfs"
+    ensure_git_lfs_filters_in_local_config
 fi
 
 if [ "$install_antidote" -eq 1 ]; then
+    section "antidote"
     "$internal_dir/install-antidote.sh"
 fi
 
 if [ "$run_check" -eq 1 ]; then
+    section "core check"
     "$internal_dir/check-core.sh" || true
 fi

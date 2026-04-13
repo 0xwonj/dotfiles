@@ -4,10 +4,11 @@ set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 . "$script_dir/common.sh"
 
-require_stow
-packages=$(resolve_packages "$@")
+case ${1:-} in
+    -h | --help)
+        show_usage "scripts/unstow" "Remove symlinks for the selected dotfiles packages."
+        exit 0
+        ;;
+esac
 
-cd "$DOTFILES_DIR"
-
-# shellcheck disable=SC2086
-stow -D --target="$TARGET_DIR" $packages
+run_stow_action "unstow" "-D" "$@"

@@ -1,26 +1,5 @@
 PATH=${PATH:-}
 
-path_remove() {
-    [ $# -eq 1 ] || return 0
-    target=$1
-    [ -n "$target" ] || return 0
-
-    old_ifs=$IFS
-    IFS=:
-    new_path=
-    for entry in $PATH; do
-        [ -n "$entry" ] || continue
-        [ "$entry" = "$target" ] && continue
-        if [ -n "$new_path" ]; then
-            new_path="${new_path}:$entry"
-        else
-            new_path=$entry
-        fi
-    done
-    IFS=$old_ifs
-    PATH=$new_path
-}
-
 path_prepend() {
     [ $# -eq 1 ] || return 0
     dir=$1

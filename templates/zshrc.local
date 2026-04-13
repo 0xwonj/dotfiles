@@ -2,7 +2,6 @@
 # Use this for interactive-only behavior after the shared ~/.zshrc base is loaded.
 
 # Example:
-# export DOTFILES_DISABLE_FASTFETCH=1
 # eval "$(direnv hook zsh)"
 # alias gs='git status -sb'
 # bindkey '^o' autosuggest-accept

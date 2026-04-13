@@ -6,5 +6,4 @@ fzf
 zoxide
 eza
 btop
-fastfetch
 yazi

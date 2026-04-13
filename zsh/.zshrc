@@ -62,14 +62,6 @@ if (( $+commands[eza] )); then
   alias lt='eza --tree --level=2 --icons=auto'
 fi
 
-if (( $+commands[nvim] )); then
-  alias vi='nvim'
-fi
-
 if [[ -f "$HOME/.zshrc.local" ]]; then
   source "$HOME/.zshrc.local"
-fi
-
-if (( $+commands[fastfetch] )) && [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]] && [[ -o login ]] && [[ -z "${TMUX:-}" ]] && [[ -z "${SSH_CONNECTION:-}" ]] && [[ "${DOTFILES_DISABLE_FASTFETCH:-0}" != "1" ]]; then
-  fastfetch
 fi

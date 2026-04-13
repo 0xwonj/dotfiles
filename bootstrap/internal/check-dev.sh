@@ -11,9 +11,9 @@ print_group() {
     printf '%s\n' "$label"
     for cmd in "$@"; do
         if have_cmd "$cmd"; then
-            printf '  ok   %-12s %s\n' "$cmd" "$(command -v "$cmd")"
+            status_line ok "$(printf '%-12s %s' "$cmd" "$(command -v "$cmd")")"
         else
-            printf '  miss %-12s\n' "$cmd"
+            status_line miss "$cmd"
         fi
     done
 }
@@ -26,10 +26,14 @@ rust_commands="rustup cargo rustc"
 javascript_commands="node npm"
 agent_commands="codex"
 missing=0
+missing_count=0
+total_count=0
 
 for cmd in $python_commands $rust_commands $javascript_commands $agent_commands; do
+    total_count=$((total_count + 1))
     if ! have_cmd "$cmd"; then
         missing=1
+        missing_count=$((missing_count + 1))
     fi
 done
 
@@ -45,5 +49,8 @@ print_group "JavaScript tooling" $javascript_commands
 printf '\n'
 # shellcheck disable=SC2086
 print_group "Agent CLIs" $agent_commands
+
+printf '\n'
+detail_line tooling "$(printf '%s/%s ok' "$((total_count - missing_count))" "$total_count")"
 
 exit "$missing"

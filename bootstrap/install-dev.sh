@@ -9,8 +9,26 @@ internal_dir=$script_dir/internal
 
 run_check=1
 
+show_usage() {
+    cat <<'EOF'
+Usage: ./bootstrap/install-dev.sh [option ...]
+
+Install development tooling that should live outside the stowed dotfiles.
+
+Options:
+  --no-check                      Skip the final development tooling check.
+  --package-manager=brew|apt|dnf|pacman
+                                  Override package-manager detection.
+  -h, --help                      Show this help text.
+EOF
+}
+
 while [ "$#" -gt 0 ]; do
     case $1 in
+        -h | --help)
+            show_usage
+            exit 0
+            ;;
         --no-check)
             run_check=0
             ;;
@@ -27,7 +45,15 @@ done
 
 install_dev_prerequisites() {
     pm=$(detect_package_manager)
-    log "dev package manager: $pm"
+    detail_line "package mgr" "$pm"
+
+    case $pm in
+        apt | dnf | pacman)
+            ensure_root_access
+            start_sudo_keepalive
+            trap 'stop_sudo_keepalive' EXIT HUP INT TERM
+            ;;
+    esac
 
     case $pm in
         brew)
@@ -85,12 +111,18 @@ install_codex() {
 }
 
 prepend_user_bins
+section "development prerequisites"
+detail_line mode "developer"
 install_dev_prerequisites
 prepend_user_bins
+section "uv"
 install_uv
+section "rustup"
 install_rustup
+section "codex"
 install_codex
 
 if [ "$run_check" -eq 1 ]; then
+    section "dev check"
     "$internal_dir/check-dev.sh" || true
 fi
