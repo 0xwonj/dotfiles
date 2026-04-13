@@ -306,6 +306,34 @@ count_list_file() {
     printf '%s\n' "$count"
 }
 
+manifest_entry_to_package() {
+    pm=$1
+    entry=$2
+
+    case $pm in
+        brew)
+            case $entry in
+                brew\ \"*\")
+                    package=${entry#brew }
+                    package=${package#\"}
+                    package=${package%%\"*}
+                    [ -n "$package" ] || die "unsupported brew manifest entry: $entry"
+                    printf '%s\n' "$package"
+                    ;;
+                *)
+                    die "unsupported brew manifest entry: $entry"
+                    ;;
+            esac
+            ;;
+        apt | dnf | pacman)
+            printf '%s\n' "$entry"
+            ;;
+        *)
+            die "unsupported package manager: $pm"
+            ;;
+    esac
+}
+
 install_package_with_pm() {
     pm=$1
     package=$2
@@ -449,13 +477,14 @@ sync_manifest_packages() {
     esac
 
     current=0
-    while IFS= read -r package || [ -n "$package" ]; do
-        case $package in
+    while IFS= read -r entry || [ -n "$entry" ]; do
+        case $entry in
             "" | \#*)
                 continue
                 ;;
         esac
 
+        package=$(manifest_entry_to_package "$pm" "$entry")
         current=$((current + 1))
 
         if [ "$upgrade" -eq 1 ]; then
