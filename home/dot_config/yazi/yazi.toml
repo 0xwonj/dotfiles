@@ -1,0 +1,18 @@
+[mgr]
+sort_by = "natural"
+sort_dir_first = true
+linemode = "mtime"
+show_symlink = true
+scrolloff = 5
+
+[preview]
+wrap = "yes"
+
+[plugin]
+prepend_previewers = [
+    { url = "*.md", run = 'piper -- ~/.config/yazi/render-markdown.sh preview "$1" "$w"' },
+    { url = "*.markdown", run = 'piper -- ~/.config/yazi/render-markdown.sh preview "$1" "$w"' },
+]
+
+[tasks]
+suppress_preload = true

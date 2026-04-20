@@ -1,0 +1,14 @@
+[package]
+name = "dotctl"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+clap.workspace = true
+miette.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+dotctl-core = { path = "../dotctl-core" }
+clap_complete.workspace = true

@@ -1,0 +1,88 @@
+[[ $- != *i* ]] && return
+
+typeset -U path PATH
+
+mkdir -p "$HOME/.cache/zsh"
+
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=100000
+SAVEHIST=100000
+setopt APPEND_HISTORY
+setopt INC_APPEND_HISTORY
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_FIND_NO_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt HIST_REDUCE_BLANKS
+
+if [[ -t 1 ]]; then
+  export GPG_TTY="$(tty)"
+fi
+
+# Rebinding autosuggest widgets on every precmd is fragile when other layers
+# also wrap ZLE widgets. Bind once after startup instead.
+typeset -g ZSH_AUTOSUGGEST_MANUAL_REBIND=1
+
+zsh_plugins_bundle="${XDG_CACHE_HOME:-$HOME/.cache}/zsh/.zsh_plugins.zsh"
+if [[ -f "$zsh_plugins_bundle" ]]; then
+  source "$zsh_plugins_bundle"
+fi
+
+autoload -Uz compinit
+compinit -i -d "$HOME/.cache/zsh/zcompdump-$ZSH_VERSION"
+
+if (( $+functions[history-substring-search-up] )); then
+  bindkey '^[[A' history-substring-search-up
+  bindkey '^[[B' history-substring-search-down
+fi
+
+if (( $+commands[fzf] )) && [[ -t 0 ]] && [[ -t 1 ]]; then
+  source <(fzf --zsh)
+fi
+
+if (( $+commands[zoxide] )); then
+  eval "$(zoxide init zsh)"
+fi
+
+if (( $+commands[starship] )) && [[ -t 1 ]] && [[ "${TERM:-}" != "dumb" ]]; then
+  eval "$(starship init zsh)"
+fi
+
+if (( $+functions[_zsh_autosuggest_bind_widgets] )); then
+  autoload -Uz add-zsh-hook
+  add-zsh-hook -d precmd _zsh_autosuggest_start 2>/dev/null
+  _zsh_autosuggest_bind_widgets
+fi
+
+if (( $+commands[nvim] )); then
+  alias vim='nvim'
+fi
+
+if ls --color=auto >/dev/null 2>&1 </dev/null; then
+  alias ls='ls --color=auto'
+else
+  alias ls='ls -G'
+fi
+
+if (( $+commands[eza] )); then
+  alias l='eza --group-directories-first --icons=auto'
+  alias ll='eza -lh --group-directories-first --icons=auto'
+  alias la='eza -lah --group-directories-first --icons=auto'
+  alias lt='eza --tree --level=2 --icons=auto'
+fi
+
+# Yazi can write its exit directory to a temp file; use that to update the shell CWD.
+function y() {
+  local tmp cwd
+
+  tmp="$(mktemp -t "yazi-cwd.XXXXXX")" || return 1
+  command yazi "$@" --cwd-file="$tmp"
+  IFS= read -r -d '' cwd < "$tmp"
+  [ -n "$cwd" ] && [ "$cwd" != "$PWD" ] && [ -d "$cwd" ] && builtin cd -- "$cwd"
+  rm -f -- "$tmp"
+}
+
+if [[ -f "$HOME/.zshrc.local" ]]; then
+  source "$HOME/.zshrc.local"
+fi

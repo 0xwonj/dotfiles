@@ -1,0 +1,64 @@
+[installers.antidote]
+kind = "git"
+repo = "https://github.com/mattmc3/antidote.git"
+install_dir = "{{home}}/.antidote"
+
+[installers.neovim]
+kind = "github_release"
+binary = "nvim"
+repo = "neovim/neovim"
+channel = "stable"
+verify_checksum = true
+asset_strategy = "neovim"
+
+[installers.starship]
+kind = "script"
+binary = "starship"
+url = "https://starship.rs/install.sh"
+interpreter = "sh"
+args = ["-y", "-b", "{{home}}/.local/bin"]
+update_policy = "latest"
+
+[installers.yazi]
+kind = "github_release"
+binary = "yazi"
+repo = "sxyazi/yazi"
+channel = "latest"
+verify_checksum = true
+asset_strategy = "yazi"
+
+[installers.uv]
+kind = "script"
+binary = "uv"
+url = "https://astral.sh/uv/install.sh"
+interpreter = "sh"
+update_policy = "latest"
+
+[installers.uv.env]
+UV_NO_MODIFY_PATH = "1"
+
+[installers.rustup]
+kind = "script"
+binary = "rustup"
+url = "https://sh.rustup.rs"
+interpreter = "sh"
+args = ["-y", "--no-modify-path"]
+update_policy = "latest"
+
+[installers.codex]
+kind = "npm"
+binary = "codex"
+package = "@openai/codex"
+prefix = "{{home}}/.local"
+update_policy = "latest"
+
+[installers.claude]
+kind = "script"
+binary = "claude"
+url = "https://claude.ai/install.sh"
+interpreter = "bash"
+args = ["stable"]
+update_policy = "latest"
+
+[installers.claude.env]
+CLAUDE_CODE_CHANNEL = "stable"

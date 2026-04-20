@@ -1,0 +1,39 @@
+[core]
+	excludesfile = ~/.config/git/ignore
+
+[init]
+	defaultBranch = main
+
+{{- if and .identity.git.name .identity.git.email }}
+[user]
+	name = {{ .identity.git.name | quote }}
+	email = {{ .identity.git.email | quote }}
+{{- else }}
+# Set identity.git.name and identity.git.email in ~/.config/dotfiles/local.toml and rerun dotctl bootstrap.
+#[user]
+#	name = "Your Name"
+#	email = "you@example.com"
+{{- end }}
+{{- if .identity.git.signing_key }}
+[user]
+	signingKey = {{ .identity.git.signing_key | quote }}
+{{- end }}
+{{- if .identity.git.sign_commits }}
+[commit]
+	gpgsign = true
+{{- end }}
+{{- if .identity.git.gpg_program }}
+[gpg]
+	program = {{ .identity.git.gpg_program | quote }}
+{{- end }}
+{{- if .features.git_lfs }}
+
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+{{- end }}
+
+[include]
+	path = ~/.gitconfig.extra

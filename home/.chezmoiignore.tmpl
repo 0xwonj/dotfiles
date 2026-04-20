@@ -1,0 +1,9 @@
+{{- if not .features.terminal_apps }}
+.tmux.conf
+.config/btop
+.config/starship.toml
+.config/yazi
+{{ end -}}
+{{- if not .features.fastfetch }}
+.config/fastfetch
+{{ end -}}

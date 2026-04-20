@@ -1,0 +1,9 @@
+[features]
+github = false
+terminal_apps = false
+git_lfs = false
+ai_tools = false
+fastfetch = false
+
+[system]
+package_manager_override = ""

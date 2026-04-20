@@ -1,0 +1,6 @@
+# Keep theme overrides small. If you decide to install a flavor later, set it here.
+#
+# Example:
+# [flavor]
+# dark = "catppuccin-mocha"
+# light = "catppuccin-latte"

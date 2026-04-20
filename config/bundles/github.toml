@@ -1,0 +1,18 @@
+id = "github"
+feature = "github"
+
+[[packages.required]]
+manager = "brew"
+names = ["gh"]
+
+[[packages.required]]
+manager = "apt"
+names = ["gh"]
+
+[[packages.required]]
+manager = "dnf"
+names = ["gh"]
+
+[[packages.required]]
+manager = "pacman"
+names = ["github-cli"]

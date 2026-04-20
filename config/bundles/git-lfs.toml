@@ -1,0 +1,18 @@
+id = "git-lfs"
+feature = "git_lfs"
+
+[[packages.required]]
+manager = "brew"
+names = ["git-lfs"]
+
+[[packages.required]]
+manager = "apt"
+names = ["git-lfs"]
+
+[[packages.required]]
+manager = "dnf"
+names = ["git-lfs"]
+
+[[packages.required]]
+manager = "pacman"
+names = ["git-lfs"]

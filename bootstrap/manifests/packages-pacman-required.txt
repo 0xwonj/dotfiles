@@ -1,6 +1,0 @@
-ca-certificates
-curl
-git
-stow
-unzip
-zsh

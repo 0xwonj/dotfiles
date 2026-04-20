@@ -1,0 +1,5 @@
+id = "ai"
+feature = "ai_tools"
+
+[tools]
+managed = ["codex", "claude"]

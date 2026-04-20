@@ -1,7 +1,0 @@
-# Machine-specific interactive zsh customizations belong here.
-# Use this for interactive-only behavior after the shared ~/.zshrc base is loaded.
-
-# Example:
-# eval "$(direnv hook zsh)"
-# alias gs='git status -sb'
-# bindkey '^o' autosuggest-accept

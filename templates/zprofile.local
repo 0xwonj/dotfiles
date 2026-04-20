@@ -1,8 +1,0 @@
-# Machine-specific zsh login-shell customizations belong here.
-# Use this for exported environment variables and PATH changes that must exist
-# before the shared ~/.zshrc runs.
-# On brew-based machines, bootstrap/install.sh manages a brew shellenv block here.
-
-# Example:
-# export PNPM_HOME="$HOME/.local/share/pnpm"
-# path=("$PNPM_HOME" "$HOME/.some-tool/bin" $path)

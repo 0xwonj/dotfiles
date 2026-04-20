@@ -1,0 +1,36 @@
+id = "core"
+
+[[packages.required]]
+manager = "brew"
+names = ["curl", "git", "chezmoi", "zsh"]
+
+[[packages.required]]
+manager = "apt"
+names = ["ca-certificates", "curl", "git", "chezmoi", "unzip", "zsh"]
+
+[[packages.required]]
+manager = "dnf"
+names = ["ca-certificates", "curl", "git", "chezmoi", "unzip", "zsh"]
+
+[[packages.required]]
+manager = "pacman"
+names = ["ca-certificates", "curl", "git", "chezmoi", "unzip", "zsh"]
+
+[[packages.optional]]
+manager = "brew"
+names = ["fzf", "zoxide", "eza"]
+
+[[packages.optional]]
+manager = "apt"
+names = ["fzf", "zoxide", "eza"]
+
+[[packages.optional]]
+manager = "dnf"
+names = ["fzf", "zoxide", "eza"]
+
+[[packages.optional]]
+manager = "pacman"
+names = ["fzf", "zoxide", "eza"]
+
+[tools]
+managed = ["antidote"]

@@ -1,0 +1,22 @@
+id = "terminal"
+feature = "terminal_apps"
+
+[[packages.required]]
+manager = "brew"
+names = ["tmux", "btop"]
+
+[[packages.required]]
+manager = "apt"
+names = ["file", "tmux", "btop"]
+
+[[packages.required]]
+manager = "dnf"
+names = ["file", "tmux", "btop"]
+
+[[packages.required]]
+manager = "pacman"
+names = ["file", "tmux", "btop"]
+
+[tools]
+managed = ["starship", "yazi"]
+post_apply = ["zsh_bundle", "yazi_sync"]

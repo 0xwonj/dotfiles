@@ -1,0 +1,20 @@
+id = "dev"
+
+[[packages.required]]
+manager = "brew"
+names = ["node"]
+
+[[packages.required]]
+manager = "apt"
+names = ["build-essential", "nodejs", "npm"]
+
+[[packages.required]]
+manager = "dnf"
+names = ["gcc", "gcc-c++", "make", "nodejs", "npm"]
+
+[[packages.required]]
+manager = "pacman"
+names = ["base-devel", "nodejs", "npm"]
+
+[tools]
+managed = ["uv", "rustup", "neovim"]
