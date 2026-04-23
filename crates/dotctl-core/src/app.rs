@@ -796,13 +796,14 @@ impl App {
             .join(format!("nvim-{}", release.tag));
         let stable_link = self.runtime.home.join(".local/opt/nvim-stable");
         let bin_link = self.runtime.home.join(".local/bin/nvim");
-        if let Some(current) = self.current_neovim_version()? {
-            if current == release.tag && version_dir.join("bin/nvim").is_file() {
-                self.symlink_force(&version_dir, &stable_link)?;
-                self.symlink_force(&version_dir.join("bin/nvim"), &bin_link)?;
-                self.status("skip", &format!("Neovim already up to date ({current})"));
-                return Ok(());
-            }
+        if let Some(current) = self.current_neovim_version()?
+            && current == release.tag
+            && version_dir.join("bin/nvim").is_file()
+        {
+            self.symlink_force(&version_dir, &stable_link)?;
+            self.symlink_force(&version_dir.join("bin/nvim"), &bin_link)?;
+            self.status("skip", &format!("Neovim already up to date ({current})"));
+            return Ok(());
         }
 
         fs::create_dir_all(self.runtime.home.join(".local/opt")).into_diagnostic()?;
@@ -874,14 +875,15 @@ impl App {
         let stable_link = self.runtime.home.join(".local/opt/yazi-stable");
         let yazi_link = self.runtime.home.join(".local/bin/yazi");
         let ya_link = self.runtime.home.join(".local/bin/ya");
-        if let Some(current) = self.current_yazi_version()? {
-            if current == latest_version && version_dir.join("yazi").is_file() {
-                self.symlink_force(&version_dir, &stable_link)?;
-                self.symlink_force(&version_dir.join("yazi"), &yazi_link)?;
-                self.symlink_force(&version_dir.join("ya"), &ya_link)?;
-                self.status("skip", &format!("Yazi already up to date ({current})"));
-                return Ok(());
-            }
+        if let Some(current) = self.current_yazi_version()?
+            && current == latest_version
+            && version_dir.join("yazi").is_file()
+        {
+            self.symlink_force(&version_dir, &stable_link)?;
+            self.symlink_force(&version_dir.join("yazi"), &yazi_link)?;
+            self.symlink_force(&version_dir.join("ya"), &ya_link)?;
+            self.status("skip", &format!("Yazi already up to date ({current})"));
+            return Ok(());
         }
         fs::create_dir_all(self.runtime.home.join(".local/opt")).into_diagnostic()?;
         fs::create_dir_all(self.runtime.home.join(".local/bin")).into_diagnostic()?;
@@ -1015,11 +1017,13 @@ impl App {
         let manifest = self.runtime.home.join(".zsh_plugins.txt");
         let cache_dir = self.runtime.home.join(".cache/zsh");
         let bundle = cache_dir.join(".zsh_plugins.zsh");
+        let antidote_home = self.runtime.home.join(".cache/antidote");
         let antidote = self.runtime.home.join(".antidote/antidote.zsh");
         if !manifest.is_file() || !antidote.is_file() {
             return Ok(());
         }
         fs::create_dir_all(&cache_dir).into_diagnostic()?;
+        fs::create_dir_all(&antidote_home).into_diagnostic()?;
         let tmp = NamedTempFile::new_in(&cache_dir).into_diagnostic()?;
         self.section("zsh plugin bundle");
         let script = format!(
@@ -1028,12 +1032,17 @@ set -eu
 set +u
 source {}
 set -u
+export ANTIDOTE_HOME={}
+zstyle ':antidote:bundle' file {}
+zstyle ':antidote:static' file {}
 antidote update --bundles
-antidote bundle < {} > {}
+antidote load {} >/dev/null
 ",
             shell_escape(antidote.to_string_lossy().as_ref()),
+            shell_escape(antidote_home.to_string_lossy().as_ref()),
             shell_escape(manifest.to_string_lossy().as_ref()),
             shell_escape(tmp.path().to_string_lossy().as_ref()),
+            shell_escape(manifest.to_string_lossy().as_ref()),
         );
         let script_file = NamedTempFile::new_in(&cache_dir).into_diagnostic()?;
         fs::write(script_file.path(), script).into_diagnostic()?;
@@ -1047,6 +1056,7 @@ antidote bundle < {} > {}
         if !status.success() {
             return Err(miette!("zsh plugin bundle build failed"));
         }
+        self.validate_zsh_bundle(&manifest, tmp.path(), &antidote_home)?;
         tmp.persist(&bundle)
             .into_diagnostic()
             .wrap_err("failed to persist zsh plugin bundle")?;
@@ -1092,20 +1102,17 @@ antidote bundle < {} > {}
         self.require_command("cc")?;
 
         if update_mode || !self.uv_tool_installed("pynvim")? {
-            self.runtime.run_checked(
-                "uv",
-                &[
-                    "tool",
-                    "install",
-                    if update_mode { "--upgrade" } else { "pynvim" },
-                    if update_mode { "pynvim" } else { "" },
-                ]
-                .iter()
-                .filter(|s| !s.is_empty())
-                .copied()
-                .collect::<Vec<_>>()
-                .as_slice(),
-            )?;
+            let uv_args = [
+                "tool",
+                "install",
+                if update_mode { "--upgrade" } else { "pynvim" },
+                if update_mode { "pynvim" } else { "" },
+            ]
+            .iter()
+            .filter(|s| !s.is_empty())
+            .copied()
+            .collect::<Vec<_>>();
+            self.runtime.run_checked("uv", uv_args.as_slice())?;
         }
         if update_mode || !self.cargo_package_installed("tree-sitter-cli")? {
             let args = if update_mode {
@@ -1195,17 +1202,22 @@ antidote bundle < {} > {}
             self.status("fail", "chezmoi verify");
             ok = false;
         }
-        if self
+        let zsh_output = self
             .runtime
             .command("zsh")
             .args(["-ic", "true"])
-            .status()
-            .into_diagnostic()?
-            .success()
-        {
+            .output()
+            .into_diagnostic()?;
+        let zsh_stderr = String::from_utf8_lossy(&zsh_output.stderr)
+            .trim()
+            .to_string();
+        if zsh_output.status.success() && zsh_stderr.is_empty() {
             self.status("ok", "zsh interactive startup");
         } else {
             self.status("fail", "zsh interactive startup");
+            if !zsh_stderr.is_empty() {
+                self.detail("stderr", &summarize_output(&zsh_stderr));
+            }
             ok = false;
         }
         if self
@@ -1292,6 +1304,55 @@ antidote bundle < {} > {}
         Ok(out
             .lines()
             .any(|line| line.split_whitespace().next() == Some(tool)))
+    }
+
+    fn validate_zsh_bundle(
+        &self,
+        manifest: &Path,
+        bundle: &Path,
+        antidote_home: &Path,
+    ) -> Result<()> {
+        let manifest_raw = fs::read_to_string(manifest).into_diagnostic()?;
+        let has_bundles = manifest_raw.lines().any(|line| {
+            let line = line.split('#').next().unwrap_or("").trim();
+            !line.is_empty()
+        });
+        let bundle_raw = fs::read_to_string(bundle)
+            .into_diagnostic()
+            .wrap_err_with(|| {
+                format!("failed to read generated zsh bundle {}", bundle.display())
+            })?;
+        if has_bundles && bundle_raw.trim().is_empty() {
+            return Err(miette!(
+                "generated zsh plugin bundle is empty: {}",
+                bundle.display()
+            ));
+        }
+
+        let mut saw_plugin_path = false;
+        for line in bundle_raw.lines() {
+            for quoted in double_quoted_strings(line) {
+                let Some(path) = expand_known_zsh_path(&quoted, antidote_home, &self.runtime.home)
+                else {
+                    continue;
+                };
+                saw_plugin_path = true;
+                if !path.exists() {
+                    return Err(miette!(
+                        "zsh plugin bundle references missing path: {}",
+                        path.display()
+                    ));
+                }
+            }
+        }
+
+        if has_bundles && !saw_plugin_path {
+            return Err(miette!(
+                "generated zsh plugin bundle did not contain any plugin paths: {}",
+                bundle.display()
+            ));
+        }
+        Ok(())
     }
 
     fn cargo_package_installed(&self, package: &str) -> Result<bool> {
@@ -1493,4 +1554,66 @@ fn shell_escape(value: &str) -> String {
     }
     let escaped = value.replace('"', "\\\"");
     format!("\"{escaped}\"")
+}
+
+fn summarize_output(output: &str) -> String {
+    const MAX_CHARS: usize = 160;
+    let single_line = output.split_whitespace().collect::<Vec<_>>().join(" ");
+    if single_line.chars().count() <= MAX_CHARS {
+        single_line
+    } else {
+        let truncated = single_line.chars().take(MAX_CHARS).collect::<String>();
+        format!("{truncated}...")
+    }
+}
+
+fn double_quoted_strings(line: &str) -> Vec<String> {
+    let mut values = Vec::new();
+    let mut current = String::new();
+    let mut in_quote = false;
+    let mut escaped = false;
+
+    for ch in line.chars() {
+        if !in_quote {
+            if ch == '"' {
+                in_quote = true;
+                current.clear();
+            }
+            continue;
+        }
+
+        if escaped {
+            current.push(ch);
+            escaped = false;
+            continue;
+        }
+
+        match ch {
+            '\\' => escaped = true,
+            '"' => {
+                values.push(current.clone());
+                current.clear();
+                in_quote = false;
+            }
+            _ => current.push(ch),
+        }
+    }
+
+    values
+}
+
+fn expand_known_zsh_path(raw: &str, antidote_home: &Path, home: &Path) -> Option<PathBuf> {
+    if raw == "$ANTIDOTE_HOME" {
+        return Some(antidote_home.to_path_buf());
+    }
+    if let Some(suffix) = raw.strip_prefix("$ANTIDOTE_HOME/") {
+        return Some(antidote_home.join(suffix));
+    }
+    if raw == "$HOME" {
+        return Some(home.to_path_buf());
+    }
+    if let Some(suffix) = raw.strip_prefix("$HOME/") {
+        return Some(home.join(suffix));
+    }
+    raw.starts_with('/').then(|| PathBuf::from(raw))
 }

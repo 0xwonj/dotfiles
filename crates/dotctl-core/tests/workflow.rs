@@ -3,7 +3,10 @@ use std::path::Path;
 
 use dotctl_core::config::{StateSnapshot, load_installer_registry};
 use dotctl_core::system::Runtime;
-use dotctl_core::{App, ApplyOptions, BootstrapOptions, DiffOptions, DiffOutcome, UpdateOptions};
+use dotctl_core::{
+    App, ApplyOptions, BootstrapOptions, DiffOptions, DiffOutcome, DoctorOptions, DoctorOutcome,
+    UpdateOptions,
+};
 use dotctl_testkit::{TestSandbox, workspace_root};
 use miette::{IntoDiagnostic, Result};
 
@@ -159,6 +162,14 @@ exit 0
 }
 
 fn write_local_config(home: &Path, repo_root: &Path) -> Result<()> {
+    write_local_config_with_terminal_apps(home, repo_root, false)
+}
+
+fn write_local_config_with_terminal_apps(
+    home: &Path,
+    repo_root: &Path,
+    terminal_apps: bool,
+) -> Result<()> {
     let local = format!(
         r#"profile = "minimal"
 
@@ -167,7 +178,7 @@ source_dir = "{}"
 
 [features]
 github = false
-terminal_apps = false
+terminal_apps = {}
 git_lfs = false
 ai_tools = false
 fastfetch = false
@@ -182,7 +193,8 @@ sign_commits = false
 [system]
 package_manager_override = "brew"
 "#,
-        repo_root.display()
+        repo_root.display(),
+        terminal_apps
     );
     let path = home.join(".config/dotfiles/local.toml");
     fs::create_dir_all(path.parent().unwrap()).into_diagnostic()?;
@@ -277,6 +289,116 @@ fn diff_reports_clean_and_dirty() -> Result<()> {
     assert_eq!(app.diff(DiffOptions::default())?, DiffOutcome::Clean);
     fs::write(sandbox.home.join(".fake-chezmoi-dirty"), "1").into_diagnostic()?;
     assert_eq!(app.diff(DiffOptions::default())?, DiffOutcome::Dirty);
+    Ok(())
+}
+
+#[test]
+fn apply_builds_zsh_bundle_into_xdg_cache_antidote_home() -> Result<()> {
+    let sandbox = TestSandbox::new()?;
+    install_common_stubs(&sandbox)?;
+    let repo_root = workspace_root();
+    write_local_config_with_terminal_apps(&sandbox.home, &repo_root, true)?;
+    fs::create_dir_all(sandbox.home.join(".antidote")).into_diagnostic()?;
+    fs::write(sandbox.home.join(".antidote/antidote.zsh"), "# stub\n").into_diagnostic()?;
+    fs::write(
+        sandbox.home.join(".zsh_plugins.txt"),
+        "zsh-users/zsh-autosuggestions\n",
+    )
+    .into_diagnostic()?;
+    sandbox.write_logged_script(
+        "zsh",
+        r#"if [ "$1" = "-ic" ]; then
+  exit 0
+fi
+script="$1"
+grep -F 'antidote load ' "$script" >/dev/null || exit 10
+grep -F 'export ANTIDOTE_HOME="' "$script" >/dev/null || exit 11
+antidote_home=$(sed -n 's/^export ANTIDOTE_HOME="\([^"]*\)"$/\1/p' "$script")
+bundle=$(sed -n 's/^zstyle '\''\:antidote\:static'\'' file "\([^"]*\)"$/\1/p' "$script")
+[ -n "$antidote_home" ] || exit 12
+[ -n "$bundle" ] || exit 13
+mkdir -p "$antidote_home/github.com/zsh-users/zsh-autosuggestions"
+mkdir -p "$(dirname "$bundle")"
+: > "$antidote_home/github.com/zsh-users/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh"
+cat <<EOF > "$bundle"
+source "$antidote_home/github.com/zsh-users/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh"
+EOF
+exit 0
+"#,
+    )?;
+    let app = App::from_runtime(make_runtime(&sandbox));
+
+    app.apply(ApplyOptions::default())?;
+
+    let bundle = sandbox.home.join(".cache/zsh/.zsh_plugins.zsh");
+    let raw = fs::read_to_string(&bundle).into_diagnostic()?;
+    assert!(raw.contains("/.cache/antidote/"));
+    assert!(!raw.contains("Library/Caches/antidote"));
+    Ok(())
+}
+
+#[test]
+fn apply_rejects_zsh_bundle_with_missing_plugin_paths() -> Result<()> {
+    let sandbox = TestSandbox::new()?;
+    install_common_stubs(&sandbox)?;
+    let repo_root = workspace_root();
+    write_local_config_with_terminal_apps(&sandbox.home, &repo_root, true)?;
+    fs::create_dir_all(sandbox.home.join(".antidote")).into_diagnostic()?;
+    fs::write(sandbox.home.join(".antidote/antidote.zsh"), "# stub\n").into_diagnostic()?;
+    fs::write(
+        sandbox.home.join(".zsh_plugins.txt"),
+        "zsh-users/zsh-autosuggestions\n",
+    )
+    .into_diagnostic()?;
+    sandbox.write_logged_script(
+        "zsh",
+        r#"if [ "$1" = "-ic" ]; then
+  exit 0
+fi
+script="$1"
+antidote_home=$(sed -n 's/^export ANTIDOTE_HOME="\([^"]*\)"$/\1/p' "$script")
+bundle=$(sed -n 's/^zstyle '\''\:antidote\:static'\'' file "\([^"]*\)"$/\1/p' "$script")
+[ -n "$antidote_home" ] || exit 12
+[ -n "$bundle" ] || exit 13
+mkdir -p "$(dirname "$bundle")"
+cat <<EOF > "$bundle"
+source "$antidote_home/github.com/zsh-users/zsh-autosuggestions/zsh-autosuggestions.plugin.zsh"
+EOF
+exit 0
+"#,
+    )?;
+    let app = App::from_runtime(make_runtime(&sandbox));
+
+    let err = app
+        .apply(ApplyOptions::default())
+        .expect_err("missing plugin bundle paths should fail");
+    assert!(
+        err.to_string()
+            .contains("zsh plugin bundle references missing path"),
+        "{err:?}"
+    );
+    Ok(())
+}
+
+#[test]
+fn doctor_fails_when_zsh_startup_writes_stderr() -> Result<()> {
+    let sandbox = TestSandbox::new()?;
+    install_common_stubs(&sandbox)?;
+    let repo_root = workspace_root();
+    write_local_config(&sandbox.home, &repo_root)?;
+    sandbox.write_logged_script(
+        "zsh",
+        r#"if [ "$1" = "-ic" ]; then
+  echo "source: no such file or directory" >&2
+  exit 0
+fi
+exit 0
+"#,
+    )?;
+    let app = App::from_runtime(make_runtime(&sandbox));
+
+    let outcome = app.doctor(DoctorOptions::default())?;
+    assert_eq!(outcome, DoctorOutcome::Unhealthy);
     Ok(())
 }
 

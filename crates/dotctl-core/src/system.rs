@@ -77,6 +77,9 @@ impl Runtime {
     }
 
     pub fn resolve_brew(&self) -> Option<PathBuf> {
+        if let Ok(path) = which_in("brew", Some(&self.path), &self.home) {
+            return Some(path);
+        }
         for candidate in [
             "/opt/homebrew/bin/brew",
             "/usr/local/bin/brew",
@@ -87,7 +90,7 @@ impl Runtime {
                 return Some(path);
             }
         }
-        which_in("brew", Some(&self.path), &self.home).ok()
+        None
     }
 
     pub fn capture_stdout(&self, program: &str, args: &[&str]) -> Result<String> {
